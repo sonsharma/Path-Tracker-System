@@ -1,0 +1,79 @@
+#include <complex.h>
+#include <SoftwareSerial.h>
+//SoftwareSerial bluetooth(2,3); // RX, TX
+
+#define START_CMD_CHAR '>'
+#define END_CMD_CHAR '\n'
+#define DIV_CMD_CHAR ','
+
+#define DEBUG 1 // Set to 0 if you don't want serial output of sensor data
+float value0, value1, value2;
+float Lat, Hyp, Lon;
+float nmea[7];
+int updates=0;
+String labels[7] {"Sensor Type: ", "Log Count: ", "Val[0]: ", "Val[1]: ", "Val[2]: ","Latitude:", "Longitude:"};
+
+void setup() {
+  Serial.begin(9600); // The default speed of the HC-05  Bluetooth serial modules
+  Serial.print("logCount,Latitude,Longitude,Altitude");
+  Serial.flush();
+}
+
+//Serial.print("logCount,Latitude,Longitude,Altitude");
+
+void loop()
+{
+  Serial.flush();
+  //int inCommand = 0;
+  int sensorType = 0;
+
+  unsigned long logCount = 0L;
+
+  char getChar = ' ';  //read serial
+
+  // wait for incoming data
+  if (Serial.available() < 1) return; // if serial empty, return to loop().
+
+  // parse incoming command start flag
+  getChar = Serial.read();
+  
+  if (getChar != START_CMD_CHAR) return; // if no command start flag, return to loop().
+
+  // parse incoming pin# and value in
+  sensorType = Serial.parseInt(); // read sensor typr
+  logCount = Serial.parseInt();  // read total logged sensor readings
+  value0 = Serial.parseFloat();  // 1st sensor value
+  value1 = Serial.parseFloat();  // 2rd sensor value if exists
+  value2 = Serial.parseFloat();  // 3rd sensor value if exists
+
+  Lon = ((atan2(value1, value0)*180)/3.14159);
+  Hyp = sqrt((value0 * value0) + (value1 * value1));
+  Lat = ((atan2(value2, Hyp)*180)/3.14159);
+  nmea[1]=sensorType;
+  nmea[2]=logCount;
+  nmea[3]=value0;
+  nmea[4]=value1;
+  nmea[5]=value2;
+  nmea[6]=Lat;
+  nmea[7]=Lon;
+  
+//Serial.println("Lat");
+//Serial.print(",");
+//Serial.print("Lon");
+
+  // send sensoduino readings to serial monitor/terminal
+  if (DEBUG) {
+      // Print out data to the Serial Monitor
+     Serial.println();
+     updates=updates+1;
+     Serial.print(updates);
+     Serial.print(",");
+     Serial.print(Lat);
+     Serial.print(",");
+     Serial.print(Lon);
+     Serial.print(",");
+     Serial.print(Hyp);
+          Serial.print(" ");
+    delay(10);
+  }
+}
